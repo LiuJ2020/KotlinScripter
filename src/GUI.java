@@ -90,37 +90,14 @@ public class GUI extends JFrame {
     }
 
     public void runScript() {
-//        boolean isWindows = System.getProperty("os.name")
-//                .toLowerCase().startsWith("windows");
-        displayOutput.setEditable(true);
-        displayOutput.setText("");
-
-        ProcessBuilder builder = new ProcessBuilder();
-        builder.command("kotlinc", "-script", currentFile.getAbsolutePath());
-        builder.directory(new File(System.getProperty("user.home")));
-        Process process = null;
-        try {
-            process = builder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        StreamGobbler streamGobbler =
-                new StreamGobbler(process.getInputStream(), this::addOutput);
-        Executors.newSingleThreadExecutor().submit(streamGobbler);
-        int exitCode = 0;
-        try {
-            exitCode = process.waitFor();
-            displayOutput.setEditable(false);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        assert exitCode == 0;
+        Thread runner = new Thread(new ScriptRunner());
+        runner.start();
     }
 
-    public void addOutput(String line) {
-        scriptOutput.add(line);
-        displayOutput.setText(displayOutput.getText() + line + "\n");
-    }
+//    public void addOutput(String line) {
+//        scriptOutput.add(line);
+//        displayOutput.setText(displayOutput.getText() + line + "\n");
+//    }
 
     // Helper classes
     private static class StreamGobbler implements Runnable {
@@ -136,6 +113,39 @@ public class GUI extends JFrame {
         public void run() {
             new BufferedReader(new InputStreamReader(inputStream)).lines()
                     .forEach(consumer);
+        }
+    }
+
+    private class ScriptRunner implements Runnable {
+        @Override
+        public void run() {
+            /*
+        boolean isWindows = System.getProperty("os.name")
+                .toLowerCase().startsWith("windows");
+*/
+            displayOutput.setEditable(true);
+            displayOutput.setText("");
+
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.command("kotlinc", "-script", currentFile.getAbsolutePath());
+            builder.directory(new File(System.getProperty("user.home")));
+            Process process = null;
+            try {
+                process = builder.start();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            StreamGobbler streamGobbler =
+                    new StreamGobbler(process.getInputStream(), line -> displayOutput.setText(displayOutput.getText() + line + "\n"));
+            Executors.newSingleThreadExecutor().submit(streamGobbler);
+            int exitCode = 0;
+            try {
+                exitCode = process.waitFor();
+                displayOutput.setEditable(false);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            assert exitCode == 0;
         }
     }
 }
