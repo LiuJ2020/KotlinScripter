@@ -16,7 +16,10 @@ public class GUI extends JFrame {
     private JProgressBar progressBar;
     private JPanel execute;
     private JButton runScript;
-    private JList placeholder;
+    private JPanel additional;
+    private JEditorPane displayOutput;
+    private JScrollPane displayOutputScrolling;
+    private JScrollPane codeEditorScroll;
 
     // storage fields
     private File currentFile;
@@ -89,6 +92,8 @@ public class GUI extends JFrame {
     public void runScript() {
 //        boolean isWindows = System.getProperty("os.name")
 //                .toLowerCase().startsWith("windows");
+        displayOutput.setEditable(true);
+        displayOutput.setText("");
 
         ProcessBuilder builder = new ProcessBuilder();
         builder.command("kotlinc", "-script", currentFile.getAbsolutePath());
@@ -100,16 +105,21 @@ public class GUI extends JFrame {
             e.printStackTrace();
         }
         StreamGobbler streamGobbler =
-                new StreamGobbler(process.getInputStream(), System.out::println);
+                new StreamGobbler(process.getInputStream(), this::addOutput);
         Executors.newSingleThreadExecutor().submit(streamGobbler);
         int exitCode = 0;
         try {
             exitCode = process.waitFor();
+            displayOutput.setEditable(false);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         assert exitCode == 0;
+    }
 
+    public void addOutput(String line) {
+        scriptOutput.add(line);
+        displayOutput.setText(displayOutput.getText() + line + "\n");
     }
 
     // Helper classes
