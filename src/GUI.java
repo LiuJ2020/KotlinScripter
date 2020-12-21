@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 public class GUI extends JFrame {
 
     // GUI-related fields
+    private JFrame frame;
     private JPanel main;
     private JEditorPane codeEditor;
     private JPanel code;
@@ -20,10 +21,12 @@ public class GUI extends JFrame {
     private JEditorPane displayOutput;
     private JScrollPane displayOutputScrolling;
     private JScrollPane codeEditorScroll;
+    private JButton openFile;
+    private JButton saveFile;
+    private JButton newFile;
 
     // storage fields
     private File currentFile;
-    private List<String> scriptOutput;
 
     public GUI() {
         initComponents();
@@ -31,14 +34,43 @@ public class GUI extends JFrame {
     }
 
     public void initComponents() {
-        JFrame frame = new JFrame("GUI");
+        frame = new JFrame("Kotlin Scripter - Untitled");
         frame.setContentPane(main);
 
         runScript.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                saveContents();
-                runScript();
+                if (prompt("You must save the script before you can run it. Would you like to save?") == JOptionPane.YES_OPTION) {
+                    saveContents();
+                    runScript();
+                    updateHeader();
+                }
+            }
+        });
+
+        newFile.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (prompt("Would you like to save this script? It will be lost otherwise.") == JOptionPane.YES_OPTION) {
+                    saveContents();
+                    runScript();
+                    updateHeader();
+                }
+                clearContents();
+                updateHeader();
+            }
+        });
+
+        openFile.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (prompt("Would you like to save this script? It will be lost otherwise.") == JOptionPane.YES_OPTION) {
+                    saveContents();
+                    runScript();
+                    updateHeader();
+                }
+                openContents();
+                updateHeader();
             }
         });
 
@@ -48,8 +80,7 @@ public class GUI extends JFrame {
     }
 
     public void initFields() {
-        currentFile = new File("/Users/jacobliu/");
-        scriptOutput = new ArrayList<>();
+        currentFile = new File("");
     }
 
     public static void main(String[] args) {
@@ -57,7 +88,7 @@ public class GUI extends JFrame {
     }
 
     // Helper methods
-    public JFileChooser selectDirectory() {
+    public JFileChooser selectSaveDirectory() {
         JFileChooser fileChooser = new JFileChooser("f:");
         int response = fileChooser.showSaveDialog(null);
         if (response == JFileChooser.APPROVE_OPTION) {
@@ -66,9 +97,22 @@ public class GUI extends JFrame {
         return null;
     }
 
+    public JFileChooser selectOpenDirectory() {
+        JFileChooser fileChooser = new JFileChooser("f:");
+        int response = fileChooser.showOpenDialog(null);
+        if (response == JFileChooser.APPROVE_OPTION) {
+            return fileChooser;
+        }
+        return null;
+    }
+
+    public int prompt(String message) {
+        return JOptionPane.showConfirmDialog(frame, message);
+    }
+
     public void saveContents() {
         if (!currentFile.isFile()) {
-            JFileChooser fileChooser = selectDirectory();
+            JFileChooser fileChooser = selectSaveDirectory();
             currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
         }
 
@@ -89,15 +133,47 @@ public class GUI extends JFrame {
         }
     }
 
+    public void clearContents() {
+        codeEditor.setText("");
+        currentFile = new File("");
+        displayOutput.setText("");
+    }
+
+    public void openContents() {
+        JFileChooser fileChooser = selectOpenDirectory();
+        currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
+
+        try {
+            String nextLine = "", totalLines = "";
+            FileReader fileReader = new FileReader(currentFile);
+            BufferedReader reader = new BufferedReader(fileReader);
+
+            totalLines = reader.readLine();
+            while ((nextLine = reader.readLine()) != null) {
+                totalLines = totalLines + "\n" + nextLine;
+            }
+
+            codeEditor.setText(totalLines);
+        } catch (Exception evt) {
+            System.err.println(evt);
+        }
+    }
+
     public void runScript() {
         Thread runner = new Thread(new ScriptRunner());
         runner.start();
     }
 
-//    public void addOutput(String line) {
-//        scriptOutput.add(line);
-//        displayOutput.setText(displayOutput.getText() + line + "\n");
-//    }
+    public void updateHeader() {
+        String path = currentFile.getPath();
+        if (path.equals("")) {
+            frame.setTitle("Kotlin Scripter - Untitled");
+        }
+        else {
+            frame.setTitle("Kotlin Scripter - " + path);
+        }
+
+    }
 
     // Helper classes
     private static class StreamGobbler implements Runnable {
