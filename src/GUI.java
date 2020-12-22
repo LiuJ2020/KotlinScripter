@@ -27,6 +27,7 @@ public class GUI extends JFrame {
 
     // storage fields
     private File currentFile;
+    private boolean hasBeenEdited;
 
     public GUI() {
         initComponents();
@@ -51,10 +52,14 @@ public class GUI extends JFrame {
         newFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (prompt("Would you like to save this script? It will be lost otherwise.") == JOptionPane.YES_OPTION) {
+                int response = prompt("Would you like to save this script? It will be lost otherwise.");
+                if (response == JOptionPane.YES_OPTION) {
                     saveContents();
                     runScript();
                     updateHeader();
+                }
+                else if (response == JOptionPane.CANCEL_OPTION) {
+                    return;
                 }
                 clearContents();
                 updateHeader();
@@ -64,12 +69,24 @@ public class GUI extends JFrame {
         openFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (prompt("Would you like to save this script? It will be lost otherwise.") == JOptionPane.YES_OPTION) {
+                int response = prompt("Would you like to save this script? It will be lost otherwise.");
+                if (response == JOptionPane.YES_OPTION) {
                     saveContents();
                     runScript();
                     updateHeader();
                 }
+                else if (response == JOptionPane.CANCEL_OPTION) {
+                    return;
+                }
                 openContents();
+                updateHeader();
+            }
+        });
+
+        saveFile.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveContents();
                 updateHeader();
             }
         });
@@ -172,7 +189,6 @@ public class GUI extends JFrame {
         else {
             frame.setTitle("Kotlin Scripter - " + path);
         }
-
     }
 
     // Helper classes
@@ -213,7 +229,10 @@ public class GUI extends JFrame {
             }
             StreamGobbler streamGobbler =
                     new StreamGobbler(process.getInputStream(), line -> displayOutput.setText(displayOutput.getText() + line + "\n"));
+            StreamGobbler streamGobblerError =
+                    new StreamGobbler(process.getErrorStream(), line -> displayOutput.setText(displayOutput.getText() + line + "\n"));
             Executors.newSingleThreadExecutor().submit(streamGobbler);
+            Executors.newSingleThreadExecutor().submit(streamGobblerError);
             int exitCode = 0;
             try {
                 exitCode = process.waitFor();
