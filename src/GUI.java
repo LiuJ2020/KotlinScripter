@@ -323,14 +323,16 @@ public class GUI extends JFrame {
 
         private final StyleContext styleContext = StyleContext.getDefaultStyleContext();
         private final AttributeSet orangeAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.ORANGE);
+        private final AttributeSet grayAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.GRAY);
         private final AttributeSet blackAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
 
-        private final String[] keywords = new String[] {"as?", "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "!in", "in", "interface", "!is", "is",
+        private final String[] keywords = new String[] {"as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in", "interface", "is",
                 "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof",
                 "val", "var", "when", "while"};
 
         // Use a regular expression to find the words you are looking for
-        Pattern pattern = buildPattern();
+        Pattern keywordPattern = buildKeywordPattern();
+        Pattern commentPattern = buildCommentPattern();
 
         @Override
         public void insertString(FilterBypass fb, int offset, String text, AttributeSet attributeSet) throws BadLocationException {
@@ -371,7 +373,7 @@ public class GUI extends JFrame {
          * The "\\b" is the beginning or end of a word boundary.  The "|" is a regex "or" operator.
          * @return
          */
-        private Pattern buildPattern()
+        private Pattern buildKeywordPattern()
         {
             StringBuilder sb = new StringBuilder();
             for (String token : keywords) {
@@ -383,11 +385,12 @@ public class GUI extends JFrame {
                 sb.deleteCharAt(sb.length() - 1); // Remove the trailing "|"
             }
 
-            Pattern p = Pattern.compile(sb.toString());
-
-            return p;
+            return Pattern.compile(sb.toString());
         }
 
+        private Pattern buildCommentPattern() {
+            return Pattern.compile("(?:/\\*(?:[^*]|(?:\\*+[^*/]))*\\*+/)|(?://.*)");
+        }
 
         private void updateTextStyles()
         {
@@ -395,10 +398,15 @@ public class GUI extends JFrame {
             styledDocument.setCharacterAttributes(0, codeEditor.getText().length(), blackAttributeSet, true);
 
             // Look for tokens and highlight them
-            Matcher matcher = pattern.matcher(codeEditor.getText());
-            while (matcher.find()) {
+            Matcher keywordMatcher = keywordPattern.matcher(codeEditor.getText());
+            while (keywordMatcher.find()) {
                 // Change the color of recognized tokens
-                styledDocument.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), orangeAttributeSet, false);
+                styledDocument.setCharacterAttributes(keywordMatcher.start(), keywordMatcher.end() - keywordMatcher.start(), orangeAttributeSet, false);
+            }
+
+            Matcher commentMatcher = commentPattern.matcher(codeEditor.getText());
+            while (commentMatcher.find()) {
+                styledDocument.setCharacterAttributes(commentMatcher.start(), commentMatcher.end() - commentMatcher.start(), grayAttributeSet, false);
             }
         }
     }
