@@ -1,7 +1,11 @@
+import java.awt.*;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyledDocument;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -33,6 +37,7 @@ public class GUI extends JFrame {
     private File currentFile;
     private boolean hasBeenEdited;
     private String[] keywords = new String[] {};
+    private Style keywordStyle;
 
     public GUI() {
         initComponents();
@@ -98,7 +103,7 @@ public class GUI extends JFrame {
             }
         });
 
-        codeEditor.getDocument().addDocumentListener(new DocumentListener() {
+        codeEditor.getStyledDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 hasBeenEdited = true;
@@ -133,6 +138,8 @@ public class GUI extends JFrame {
     public void initFields() {
         currentFile = new File("");
         hasBeenEdited = false;
+        keywords = new String[] {};
+        keywordStyle = codeEditor.addStyle("", null);
     }
 
     public static void main(String[] args) {
@@ -206,16 +213,17 @@ public class GUI extends JFrame {
         currentFile = selectOpenDirectory();
 
         try {
-            String nextLine = "", totalLines = "";
+            codeEditor.setText("");
+            String nextLine = "";
             FileReader fileReader = new FileReader(currentFile);
             BufferedReader reader = new BufferedReader(fileReader);
 
-            totalLines = reader.readLine();
-            while ((nextLine = reader.readLine()) != null) {
-                totalLines = totalLines + "\n" + nextLine;
-            }
+            StyledDocument doc = codeEditor.getStyledDocument();
 
-            codeEditor.setText(totalLines);
+            addLine(doc, reader.readLine());
+            while ((nextLine = reader.readLine()) != null) {
+                addLine(doc, nextLine);
+            }
         } catch (Exception evt) {
             System.err.println(evt);
         }
@@ -238,6 +246,14 @@ public class GUI extends JFrame {
         }
         else {
             frame.setTitle("Kotlin Scripter - " + path);
+        }
+    }
+
+    public void addLine(StyledDocument doc, String line) {
+        try {
+            doc.insertString(doc.getLength(), line + "\n", null);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
         }
     }
 
@@ -274,6 +290,8 @@ public class GUI extends JFrame {
             displayOutput.setText("");
             runningIndicator.setText("Running...");
 
+            StyledDocument doc = displayOutput.getStyledDocument();
+
             ProcessBuilder builder = new ProcessBuilder();
             builder.command("kotlinc", "-script", currentFile.getAbsolutePath());
             builder.directory(new File(System.getProperty("user.home")));
@@ -284,9 +302,9 @@ public class GUI extends JFrame {
                 e.printStackTrace();
             }
             StreamGobbler streamGobbler =
-                    new StreamGobbler(process.getInputStream(), line -> displayOutput.setText(displayOutput.getText() + line + "\n"));
+                    new StreamGobbler(process.getInputStream(), line -> addLine(doc, line));
             StreamGobbler streamGobblerError =
-                    new StreamGobbler(process.getErrorStream(), line -> displayOutput.setText(displayOutput.getText() + line + "\n"));
+                    new StreamGobbler(process.getErrorStream(), line -> addLine(doc, line));
             Executors.newSingleThreadExecutor().submit(streamGobbler);
             Executors.newSingleThreadExecutor().submit(streamGobblerError);
             int exitCode = 0;
