@@ -3,14 +3,14 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Style;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class GUI extends JFrame {
 
@@ -32,16 +32,18 @@ public class GUI extends JFrame {
     private JLabel runningIndicator;
     private JLabel hasBeenEditedDisplay;
     private JButton indexKeywordsButton;
+    private JButton stopScriptButton;
+    private JLabel exitCodeDisplay;
+    private JPanel scriptRunningPanel;
 
     // storage fields
     private File currentFile;
     private boolean hasBeenEdited;
-    private String[] keywords = new String[] {};
-    private Style keywordStyle;
 
     public GUI() {
         initComponents();
         initFields();
+
 
     }
 
@@ -122,8 +124,9 @@ public class GUI extends JFrame {
                 hasBeenEditedDisplay.setText("*");
             }
         });
+        ((AbstractDocument) codeEditor.getDocument()).setDocumentFilter(new KeywordDocumentFilter());
 
-        indexKeywordsButton.addActionListener(new ActionListener() {
+        stopScriptButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
 
@@ -138,8 +141,6 @@ public class GUI extends JFrame {
     public void initFields() {
         currentFile = new File("");
         hasBeenEdited = false;
-        keywords = new String[] {};
-        keywordStyle = codeEditor.addStyle("", null);
     }
 
     public static void main(String[] args) {
@@ -257,10 +258,6 @@ public class GUI extends JFrame {
         }
     }
 
-    public void parseContents() {
-        String code = codeEditor.getText();
-    }
-
     // Helper classes
     private static class StreamGobbler implements Runnable {
         private InputStream inputStream;
@@ -310,12 +307,99 @@ public class GUI extends JFrame {
             int exitCode = 0;
             try {
                 exitCode = process.waitFor();
+                exitCodeDisplay.setText("Exit Code: " + process.exitValue());
                 displayOutput.setEditable(false);
                 runningIndicator.setText("Done!");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             assert exitCode == 0;
+        }
+    }
+
+    private final class KeywordDocumentFilter extends DocumentFilter
+    {
+        private final StyledDocument styledDocument = codeEditor.getStyledDocument();
+
+        private final StyleContext styleContext = StyleContext.getDefaultStyleContext();
+        private final AttributeSet orangeAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.ORANGE);
+        private final AttributeSet blackAttributeSet = styleContext.addAttribute(styleContext.getEmptySet(), StyleConstants.Foreground, Color.BLACK);
+
+        private final String[] keywords = new String[] {"as?", "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "!in", "in", "interface", "!is", "is",
+                "null", "object", "package", "return", "super", "this", "throw", "true", "try", "typealias", "typeof",
+                "val", "var", "when", "while"};
+
+        // Use a regular expression to find the words you are looking for
+        Pattern pattern = buildPattern();
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String text, AttributeSet attributeSet) throws BadLocationException {
+            super.insertString(fb, offset, text, attributeSet);
+
+            handleTextChanged();
+        }
+
+        @Override
+        public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
+            super.remove(fb, offset, length);
+
+            handleTextChanged();
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attributeSet) throws BadLocationException {
+            super.replace(fb, offset, length, text, attributeSet);
+
+            handleTextChanged();
+        }
+
+        /**
+         * Runs your updates later, not during the event notification.
+         */
+        private void handleTextChanged()
+        {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    updateTextStyles();
+                }
+            });
+        }
+
+        /**
+         * Build the regular expression that looks for the whole word of each word that you wish to find.
+         * The "\\b" is the beginning or end of a word boundary.  The "|" is a regex "or" operator.
+         * @return
+         */
+        private Pattern buildPattern()
+        {
+            StringBuilder sb = new StringBuilder();
+            for (String token : keywords) {
+                sb.append("\\b"); // Start of word boundary
+                sb.append(token);
+                sb.append("\\b|"); // End of word boundary and an or for the next word
+            }
+            if (sb.length() > 0) {
+                sb.deleteCharAt(sb.length() - 1); // Remove the trailing "|"
+            }
+
+            Pattern p = Pattern.compile(sb.toString());
+
+            return p;
+        }
+
+
+        private void updateTextStyles()
+        {
+            // Clear existing styles
+            styledDocument.setCharacterAttributes(0, codeEditor.getText().length(), blackAttributeSet, true);
+
+            // Look for tokens and highlight them
+            Matcher matcher = pattern.matcher(codeEditor.getText());
+            while (matcher.find()) {
+                // Change the color of recognized tokens
+                styledDocument.setCharacterAttributes(matcher.start(), matcher.end() - matcher.start(), orangeAttributeSet, false);
+            }
         }
     }
 }

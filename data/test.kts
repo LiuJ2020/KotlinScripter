@@ -1,4 +1,4 @@
-import java.io.File
+// import java.io.File
 
 fun File.printPathAndSubdirs() {
     println(path)
@@ -7,4 +7,4 @@ fun File.printPathAndSubdirs() {
     }
 }
 
-File(".").printPathAndSubdirs()
+File("./Documents/Work/Intern/JetBrains").printPathAndSubdirs()
