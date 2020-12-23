@@ -1,5 +1,7 @@
 import java.util.*;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -11,19 +13,20 @@ public class GUI extends JFrame {
     // GUI-related fields
     private JFrame frame;
     private JPanel main;
-    private JEditorPane codeEditor;
+    private JTextPane codeEditor;
     private JPanel code;
     private JPanel output;
-    private JProgressBar progressBar;
     private JPanel execute;
     private JButton runScript;
     private JPanel additional;
-    private JEditorPane displayOutput;
+    private JTextPane displayOutput;
     private JScrollPane displayOutputScrolling;
     private JScrollPane codeEditorScroll;
     private JButton openFile;
     private JButton saveFile;
     private JButton newFile;
+    private JLabel runningIndicator;
+    private JLabel hasBeenEditedDisplay;
 
     // storage fields
     private File currentFile;
@@ -41,7 +44,8 @@ public class GUI extends JFrame {
         runScript.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (prompt("You must save the script before you can run it. Would you like to save?") == JOptionPane.YES_OPTION) {
+                int response = (hasBeenEdited ? prompt("You must save the script before you can run it. Would you like to save?") : -1);
+                if (response == JOptionPane.YES_OPTION) {
                     saveContents();
                     runScript();
                     updateHeader();
@@ -52,10 +56,9 @@ public class GUI extends JFrame {
         newFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int response = prompt("Would you like to save this script? It will be lost otherwise.");
+                int response = (hasBeenEdited ? prompt("Would you like to save this script? It will be lost otherwise.") : -1);
                 if (response == JOptionPane.YES_OPTION) {
                     saveContents();
-                    runScript();
                     updateHeader();
                 }
                 else if (response == JOptionPane.CANCEL_OPTION) {
@@ -69,10 +72,9 @@ public class GUI extends JFrame {
         openFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int response = prompt("Would you like to save this script? It will be lost otherwise.");
+                int response = (hasBeenEdited ? prompt("Would you like to save this script? It will be lost otherwise.") : -1);
                 if (response == JOptionPane.YES_OPTION) {
                     saveContents();
-                    runScript();
                     updateHeader();
                 }
                 else if (response == JOptionPane.CANCEL_OPTION) {
@@ -91,6 +93,26 @@ public class GUI extends JFrame {
             }
         });
 
+        codeEditor.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                hasBeenEdited = true;
+                hasBeenEditedDisplay.setText("*");
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                hasBeenEdited = true;
+                hasBeenEditedDisplay.setText("*");
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                hasBeenEdited = true;
+                hasBeenEditedDisplay.setText("*");
+            }
+        });
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
@@ -98,6 +120,7 @@ public class GUI extends JFrame {
 
     public void initFields() {
         currentFile = new File("");
+        hasBeenEdited = false;
     }
 
     public static void main(String[] args) {
@@ -127,7 +150,14 @@ public class GUI extends JFrame {
         return JOptionPane.showConfirmDialog(frame, message);
     }
 
+    public void inform(String message) {
+        JOptionPane.showMessageDialog(frame, message);
+    }
+
     public void saveContents() {
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
+
         if (!currentFile.isFile()) {
             JFileChooser fileChooser = selectSaveDirectory();
             currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
@@ -151,12 +181,18 @@ public class GUI extends JFrame {
     }
 
     public void clearContents() {
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
+
         codeEditor.setText("");
         currentFile = new File("");
         displayOutput.setText("");
     }
 
     public void openContents() {
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
+
         JFileChooser fileChooser = selectOpenDirectory();
         currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
 
@@ -215,8 +251,10 @@ public class GUI extends JFrame {
         boolean isWindows = System.getProperty("os.name")
                 .toLowerCase().startsWith("windows");
 */
+
             displayOutput.setEditable(true);
             displayOutput.setText("");
+            runningIndicator.setText("Running...");
 
             ProcessBuilder builder = new ProcessBuilder();
             builder.command("kotlinc", "-script", currentFile.getAbsolutePath());
@@ -237,6 +275,7 @@ public class GUI extends JFrame {
             try {
                 exitCode = process.waitFor();
                 displayOutput.setEditable(false);
+                runningIndicator.setText("Done!");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
