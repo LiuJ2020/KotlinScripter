@@ -47,9 +47,9 @@ public class GUI extends JFrame {
                 int response = (hasBeenEdited ? prompt("You must save the script before you can run it. Would you like to save?") : -1);
                 if (response == JOptionPane.YES_OPTION) {
                     saveContents();
-                    runScript();
                     updateHeader();
                 }
+                runScript();
             }
         });
 
@@ -88,8 +88,10 @@ public class GUI extends JFrame {
         saveFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                saveContents();
-                updateHeader();
+                if (hasBeenEdited) {
+                    saveContents();
+                    updateHeader();
+                }
             }
         });
 
@@ -128,22 +130,22 @@ public class GUI extends JFrame {
     }
 
     // Helper methods
-    public JFileChooser selectSaveDirectory() {
+    public File selectSaveDirectory() {
         JFileChooser fileChooser = new JFileChooser("f:");
         int response = fileChooser.showSaveDialog(null);
         if (response == JFileChooser.APPROVE_OPTION) {
-            return fileChooser;
+            return fileChooser.getSelectedFile();
         }
-        return null;
+        return new File("");
     }
 
-    public JFileChooser selectOpenDirectory() {
+    public File selectOpenDirectory() {
         JFileChooser fileChooser = new JFileChooser("f:");
         int response = fileChooser.showOpenDialog(null);
         if (response == JFileChooser.APPROVE_OPTION) {
-            return fileChooser;
+            return fileChooser.getSelectedFile();
         }
-        return null;
+        return new File("");
     }
 
     public int prompt(String message) {
@@ -155,12 +157,8 @@ public class GUI extends JFrame {
     }
 
     public void saveContents() {
-        hasBeenEdited = false;
-        hasBeenEditedDisplay.setText("");
-
         if (!currentFile.isFile()) {
-            JFileChooser fileChooser = selectSaveDirectory();
-            currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
+            currentFile = selectSaveDirectory();
         }
 
         try {
@@ -178,23 +176,24 @@ public class GUI extends JFrame {
         } catch (Exception evt) {
             System.err.println(evt);
         }
+
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
     }
 
     public void clearContents() {
-        hasBeenEdited = false;
-        hasBeenEditedDisplay.setText("");
+        runningIndicator.setText("No Script Running");
 
         codeEditor.setText("");
         currentFile = new File("");
         displayOutput.setText("");
+
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
     }
 
     public void openContents() {
-        hasBeenEdited = false;
-        hasBeenEditedDisplay.setText("");
-
-        JFileChooser fileChooser = selectOpenDirectory();
-        currentFile = new File(fileChooser.getSelectedFile().getAbsolutePath());
+        currentFile = selectOpenDirectory();
 
         try {
             String nextLine = "", totalLines = "";
@@ -210,6 +209,11 @@ public class GUI extends JFrame {
         } catch (Exception evt) {
             System.err.println(evt);
         }
+
+        hasBeenEdited = false;
+        hasBeenEditedDisplay.setText("");
+        runningIndicator.setText("No Script Running");
+        updateHeader();
     }
 
     public void runScript() {

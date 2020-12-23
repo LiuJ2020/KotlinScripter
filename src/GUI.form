@@ -47,7 +47,7 @@
               </grid>
             </constraints>
             <properties>
-              <text value=""/>
+              <text value="No Script Running"/>
             </properties>
           </component>
         </children>
