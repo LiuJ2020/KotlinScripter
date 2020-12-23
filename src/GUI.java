@@ -1,9 +1,8 @@
-import java.awt.*;
-import java.util.*;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -32,13 +31,13 @@ public class GUI extends JFrame {
     private JLabel runningIndicator;
     private JLabel hasBeenEditedDisplay;
     private JButton indexKeywordsButton;
-    private JButton stopScriptButton;
     private JPanel scriptRunningPanel;
     private JLabel exitCodeDisplay;
 
     // storage fields
     private File currentFile;
     private boolean hasBeenEdited;
+    private Thread runner;
 
     public GUI() {
         initComponents();
@@ -125,13 +124,6 @@ public class GUI extends JFrame {
             }
         });
         ((AbstractDocument) codeEditor.getDocument()).setDocumentFilter(new KeywordDocumentFilter());
-
-        stopScriptButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-            }
-        });
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
@@ -232,11 +224,10 @@ public class GUI extends JFrame {
         hasBeenEdited = false;
         hasBeenEditedDisplay.setText("");
         runningIndicator.setText("No Script Running");
-        updateHeader();
     }
 
     public void runScript() {
-        Thread runner = new Thread(new ScriptRunner());
+        runner = new Thread(new ScriptRunner());
         runner.start();
     }
 
