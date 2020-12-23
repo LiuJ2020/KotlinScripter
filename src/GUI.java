@@ -33,8 +33,8 @@ public class GUI extends JFrame {
     private JLabel hasBeenEditedDisplay;
     private JButton indexKeywordsButton;
     private JButton stopScriptButton;
-    private JLabel exitCodeDisplay;
     private JPanel scriptRunningPanel;
+    private JLabel exitCodeDisplay;
 
     // storage fields
     private File currentFile;
@@ -278,11 +278,6 @@ public class GUI extends JFrame {
     private class ScriptRunner implements Runnable {
         @Override
         public void run() {
-            /*
-        boolean isWindows = System.getProperty("os.name")
-                .toLowerCase().startsWith("windows");
-*/
-
             displayOutput.setEditable(true);
             displayOutput.setText("");
             runningIndicator.setText("Running...");
@@ -307,9 +302,9 @@ public class GUI extends JFrame {
             int exitCode = 0;
             try {
                 exitCode = process.waitFor();
-                exitCodeDisplay.setText("Exit Code: " + process.exitValue());
                 displayOutput.setEditable(false);
                 runningIndicator.setText("Done!");
+                exitCodeDisplay.setText("Exit Code: " + process.exitValue());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
