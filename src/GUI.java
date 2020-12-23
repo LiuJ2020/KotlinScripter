@@ -27,14 +27,17 @@ public class GUI extends JFrame {
     private JButton newFile;
     private JLabel runningIndicator;
     private JLabel hasBeenEditedDisplay;
+    private JButton indexKeywordsButton;
 
     // storage fields
     private File currentFile;
     private boolean hasBeenEdited;
+    private String[] keywords = new String[] {};
 
     public GUI() {
         initComponents();
         initFields();
+
     }
 
     public void initComponents() {
@@ -112,6 +115,13 @@ public class GUI extends JFrame {
             public void changedUpdate(DocumentEvent e) {
                 hasBeenEdited = true;
                 hasBeenEditedDisplay.setText("*");
+            }
+        });
+
+        indexKeywordsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
             }
         });
 
@@ -229,6 +239,10 @@ public class GUI extends JFrame {
         else {
             frame.setTitle("Kotlin Scripter - " + path);
         }
+    }
+
+    public void parseContents() {
+        String code = codeEditor.getText();
     }
 
     // Helper classes
