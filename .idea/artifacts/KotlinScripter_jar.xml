@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="KotlinScripter:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/KotlinScripter_jar</output-path>
+    <root id="archive" name="KotlinScripter.jar">
+      <element id="module-output" name="KotlinScripter" />
+    </root>
+  </artifact>
+</component>
